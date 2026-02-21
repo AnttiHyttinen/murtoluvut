@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murtolukuseikkailu 2.0 🌟</title>
+    <style>
+        :root {
+            --bg: #fdfdfd;
+            --primary: #6366f1;
+            --plus: #10b981;
+            --minus: #f59e0b;
+            --multi: #3b82f6;
+            --divi: #8b5cf6;
+            --error: #ef4444;
+            --card-bg: #ffffff;
+            --text: #374151;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #eef2ff url('https://www.transparenttextures.com/patterns/cubes.png');
+            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            color: var(--text);
+        }
+
+        .adventure-card {
+            background: var(--card-bg); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            width: 100%; max-width: 800px; padding: 40px; text-align: center; border: 8px solid #fff;
+            position: relative; overflow: hidden;
+        }
+
+        h1 { font-size: 2.8rem; margin-bottom: 10px; color: var(--primary); font-weight: 800; }
+        .hidden { display: none !important; }
+
+        /* Valinnat */
+        .selection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin: 25px 0; }
+        .choice-btn {
+            background: white; border: 3px solid #e2e8f0; padding: 15px; border-radius: 20px;
+            cursor: pointer; font-weight: bold; font-size: 1.1rem; transition: 0.2s;
+        }
+        .choice-btn:hover { border-color: var(--primary); background: #f8fafc; }
+        .choice-btn.active { border-color: var(--primary); background: #e0e7ff; transform: scale(1.05); }
+
+        /* Pelinäkymä */
+        .op-badge {
+            display: inline-block; padding: 8px 20px; border-radius: 50px; color: white;
+            font-weight: bold; font-size: 1.1rem; margin-bottom: 15px;
+        }
+
+        .fraction-display { display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 25px 0; font-weight: bold; }
+        .fraction { display: flex; flex-direction: column; align-items: center; margin: 0 10px; }
+        .num { border-bottom: 4px solid var(--text); padding: 0 15px; }
+        .den { padding: 5px 15px; }
+
+        .step-box { 
+            background: #f8fafc; border-radius: 20px; padding: 20px; margin: 15px 0;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .input-fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; }
+        input { 
+            width: 65px; height: 45px; text-align: center; font-size: 1.3rem; 
+            border: 3px solid #cbd5e1; border-radius: 12px; font-weight: bold; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+        .divider { width: 100%; height: 4px; background: #cbd5e1; margin: 5px 0; }
+
+        .btn-main {
+            background: var(--primary); color: white; border: none; padding: 15px 40px;
+            border-radius: 50px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 0px #4338ca; transition: 0.1s; margin-top: 15px;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 8px 0px #4338ca; }
+        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px 0px #4338ca; }
+
+        /* Custom Alert / Error Toast */
+        #error-toast {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: var(--error); color: white; padding: 12px 25px; border-radius: 15px;
+            font-weight: bold; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+        }
+        #error-toast.show { transform: translateX(-50%) translateY(0px); }
+
+        .hint-text { background: #fff9db; padding: 15px; border-radius: 15px; margin-bottom: 20px; border-left: 8px solid #fcc419; text-align: left; font-size: 0.95rem; }
+
+        /* Tulokset */
+        .grade-title { font-size: 2.2rem; margin: 15px 0; color: var(--primary); font-weight: 800; }
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+        .results-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        .row-plus { border-left: 6px solid var(--plus); }
+        .row-minus { border-left: 6px solid var(--minus); }
+        .row-multi { border-left: 6px solid var(--multi); }
+        .row-divi { border-left: 6px solid var(--divi); }
+    </style>
+</head>
+<body>
+
+<div class="adventure-card" id="app">
+    <div id="error-toast">Ups! Täytä lopullinen vastaus ensin. ✍️</div>
+
+    <div id="start-screen">
+        <h1>Murtolukuseikkailu 🌟</h1>
+        <p style="color: #64748b; font-weight: 500;">Oletko valmis haastamaan itsesi?</p>
+        
+        <p style="margin-top: 30px; font-weight: bold;">Tehtävien määrä:</p>
+        <div class="selection-grid" id="count-select">
+            <button class="choice-btn" onclick="setCount(8, this)">8</button>
+            <button class="choice-btn" onclick="setCount(12, this)">12</button>
+            <button class="choice-btn active" onclick="setCount(16, this)">16</button>
+            <button class="choice-btn" onclick="setCount(20, this)">20</button>
+        </div>
+        
+        <p style="font-weight: bold;">Vaikeustaso:</p>
+        <div class="selection-grid">
+            <button class="choice-btn" onclick="startGame(1)">🌱 Helppo</button>
+            <button class="choice-btn" onclick="startGame(2)">🚀 Keski</button>
+            <button class="choice-btn" onclick="startGame(3)">🧠 Guru</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div id="op-badge" class="op-badge">Yhteenlasku</div>
+        <div style="font-weight: 800; color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+            Tehtävä <span id="q-idx">1</span> / <span id="q-total">16</span>
+        </div>
+        
+        <div id="hint-area" class="hint-text hidden"></div>
+
+        <div class="fraction-display" id="q-display"></div>
+
+        <div class="step-box">
+            <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 12px; color: #94a3b8; text-transform: uppercase;">Välivaihe (Vapaaehtoinen)</div>
+            <div id="step1-ui" style="display: flex; align-items: center; justify-content: center; gap: 15px;"></div>
+        </div>
+
+        <div class="step-box" style="background: #fff; border: 3px solid var(--primary); box-shadow: 0 10px 20px rgba(99, 102, 241, 0.1);">
+            <div style="font-size: 0.8rem; font-weight: 800; margin-bottom: 10px; color: var(--primary); text-transform: uppercase;">Lopullinen vastaus (Supistettuna)</div>
+            <div class="input-fraction">
+                <input type="number" id="ans-n" placeholder="oso">
+                <div class="divider" style="background: var(--primary);"></div>
+                <input type="number" id="ans-d" placeholder="nim">
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+            <button class="choice-btn" onclick="toggleHint()" style="padding: 10px 20px; font-size: 0.9rem;">💡 Ohje</button>
+            <button class="btn-main" onclick="checkAnswer()">Seuraava &rarr;</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <div id="grade-emoji" style="font-size: 5rem; margin-bottom: 10px;">🏆</div>
+        <div id="grade-text" class="grade-title">Murtolukuguru!</div>
+        <h2 id="final-stats" style="color: #64748b;">16 / 16 oikein</h2>
+        
+        <div style="max-height: 380px; overflow-y: auto; margin-top: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
+            <table class="results-table" id="res-table">
+                <tbody id="res-body"></tbody>
+            </table>
+        </div>
+        <button class="btn-main" onclick="location.reload()">Uusi seikkailu 🔄</button>
+    </div>
+</div>
+
+<script>
+    let totalQuestions = 16, currentIdx = 0, score = 0, questions = [], userAnswers = [];
+
+    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+    const simplify = (n, d) => { let c = gcd(Math.abs(n), Math.abs(d)); return { n: n/c, d: d/c }; };
+
+    function setCount(num, btn) {
+        totalQuestions = num;
+        document.querySelectorAll('#count-select .choice-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function showToast() {
+        const t = document.getElementById('error-toast');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    function generateQuestions(level) {
+        const ops = [
+            { symbol: '+', name: 'Yhteenlasku', color: 'var(--plus)', hint: 'Etsi murtoluvuille yhteinen nimittäjä laventamalla.' },
+            { symbol: '-', name: 'Vähennyslasku', color: 'var(--minus)', hint: 'Etsi murtoluvuille yhteinen nimittäjä laventamalla.' },
+            { symbol: '·', name: 'Kertolasku', color: 'var(--multi)', hint: 'Kerro osoittajat keskenään ja nimittäjät keskenään.' },
+            { symbol: ':', name: 'Jakolasku', color: 'var(--divi)', hint: 'Käännä jakaja (jälkimmäinen luku) ja muuta se kertolaskuksi.' }
+        ];
+        let tempQs = [];
+        let countPerOp = totalQuestions / 4;
+        ops.forEach(opObj => {
+            for(let i=0; i < countPerOp; i++) {
+                let max = level * 6 + 2;
+                let d1 = Math.floor(Math.random()*max)+2, d2 = Math.floor(Math.random()*max)+2;
+                let n1 = Math.floor(Math.random()*(d1-1))+1, n2 = Math.floor(Math.random()*(d2-1))+1;
+                if(opObj.symbol === '-' && n1/d1 < n2/d2) [n1, n2, d1, d2] = [n2, n1, d2, d1];
+                tempQs.push({...opObj, n1, d1, n2, d2});
+            }
+        });
+        return tempQs.sort(() => Math.random() - 0.5);
+    }
+
+    function startGame(level) {
+        questions = generateQuestions(level);
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        document.getElementById('q-total').innerText = totalQuestions;
+        loadQuestion();
+    }
+
+    function toggleHint() { document.getElementById('hint-area').classList.toggle('hidden'); }
+
+    function loadQuestion() {
+        const q = questions[currentIdx];
+        document.getElementById('q-idx').innerText = currentIdx + 1;
+        document.getElementById('ans-n').value = ''; document.getElementById('ans-d').value = '';
+        document.getElementById('hint-area').innerText = q.hint;
+        document.getElementById('hint-area').classList.add('hidden');
+        
+        const badge = document.getElementById('op-badge');
+        badge.innerText = q.name; badge.style.backgroundColor = q.color;
+
+        document.getElementById('q-display').innerHTML = `
+            <div class="fraction"><div class="num">${q.n1}</div><div class="den">${q.d1}</div></div>
+            <div style="color:${q.color}; margin: 0 10px;">${q.symbol}</div>
+            <div class="fraction"><div class="num">${q.n2}</div><div class="den">${q.d2}</div></div>
+        `;
+
+        const s1 = document.getElementById('step1-ui');
+        // Sekä kerto- että jakolaskussa nyt 4 kenttää (2 murtolukua)
+        if(q.symbol === '+' || q.symbol === '-') {
+            s1.innerHTML = `<div class="input-fraction"><input type="number"><div class="divider"></div><input type="number"></div>
+                            <span style="font-size:1.5rem; color:#94a3b8">${q.symbol}</span>
+                            <div class="input-fraction"><input type="number"><div class="divider"></div><input type="number"></div>`;
+        } else {
+            // Jakolasku ja Kertolasku molemmat näyttävät kaksi murtolukua
+            s1.innerHTML = `<div class="input-fraction"><input type="number"><div class="divider"></div><input type="number"></div>
+                            <span style="font-size:1.5rem; color:#94a3b8">·</span>
+                            <div class="input-fraction"><input type="number"><div class="divider"></div><input type="number"></div>`;
+        }
+    }
+
+    function checkAnswer() {
+        const uN = parseInt(document.getElementById('ans-n').value), uD = parseInt(document.getElementById('ans-d').value);
+        if(isNaN(uN) || isNaN(uD)) return showToast();
+
+        const q = questions[currentIdx];
+        let sol;
+        if(q.symbol==='+') sol = simplify(q.n1*q.d2 + q.n2*q.d1, q.d1*q.d2);
+        else if(q.symbol==='-') sol = simplify(q.n1*q.d2 - q.n2*q.d1, q.d1*q.d2);
+        else if(q.symbol==='·') sol = simplify(q.n1*q.n2, q.d1*q.d2);
+        else sol = simplify(q.n1*q.d2, q.d1*q.n2);
+
+        let status = "väärin";
+        let uSimp = simplify(uN, uD);
+        if(uSimp.n === sol.n && uSimp.d === sol.d) {
+            if(uN === sol.n && uD === sol.d) { status = "oikein"; score++; }
+            else status = "ei supistettu";
+        }
+
+        userAnswers.push({q, uN, uD, sol, status});
+        currentIdx++;
+        if(currentIdx < totalQuestions) loadQuestion(); else showResults();
+    }
+
+    function showResults() {
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        
+        let percent = (score / totalQuestions) * 100;
+        let grade, emoji;
+        if(percent === 100) { grade = "Täydellistä!"; emoji = "👑"; }
+        else if(percent >= 80) { grade = "Mahtavaa työtä!"; emoji = "🌟"; }
+        else if(percent >= 50) { grade = "Hyvin hoidettu!"; emoji = "👍"; }
+        else { grade = "Harjoitus tekee mestarin!"; emoji = "💪"; }
+
+        document.getElementById('grade-text').innerText = grade;
+        document.getElementById('grade-emoji').innerText = emoji;
+        document.getElementById('final-stats').innerText = `${score} / ${totalQuestions} pistettä`;
+
+        const tbody = document.getElementById('res-body');
+        userAnswers.forEach(a => {
+            let rowClass = a.q.symbol==='+' ? 'row-plus' : a.q.symbol==='-' ? 'row-minus' : a.q.symbol==='·' ? 'row-multi' : 'row-divi';
+            tbody.innerHTML += `<tr class="${rowClass}">
+                <td style="font-weight:bold">${a.q.n1}/${a.q.d1} ${a.q.symbol} ${a.q.n2}/${a.q.d2}</td>
+                <td>Sinä: ${a.uN}/${a.uD}</td>
+                <td>Oikein: ${a.sol.n}/${a.sol.d}</td>
+                <td style="font-weight:800; text-transform:uppercase; font-size:0.75rem; color:${a.status==='oikein'?'#10b981':a.status==='väärin'?'#ef4444':'#f59e0b'}">${a.status}</td>
+            </tr>`;
+        });
+    }
+</script>
+
+</body>
+</html>
